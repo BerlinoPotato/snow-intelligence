@@ -166,7 +166,7 @@ body {
     <div style="display:flex;align-items:center;gap:10px;">
         <div>
             <h1>IT Engineering Intelligence Dashboard</h1>
-            <div class="header-subtitle">ServiceNow Activity Analytics &mdash; Generated 2026-03-25 13:05</div>
+            <div class="header-subtitle">ServiceNow Activity Analytics &mdash; Generated 2026-03-25 13:16</div>
         </div>
         <span class="info-btn info-header-btn" onclick="toggleInfo(this)">i
             <div class="info-popup right" style="top:32px;min-width:420px;">
@@ -963,8 +963,9 @@ function renderReassign() {
          marker: {color: '#e94560', opacity: 0.85}, text: rows.map(r => r.count), textposition: 'outside'},
         {x: rows.map(r => r.app), y: rows.map(r => r.avgEng), type: 'scatter', mode: 'lines+markers',
          name: 'Avg Engineers/Ticket', yaxis: 'y2', line: {color: '#fdcb6e', width: 2}, marker: {size: 7}},
-    ], {...DARK_LAYOUT, height: 380,
-        xaxis: {...DARK_LAYOUT.xaxis, tickangle: -30},
+    ], {...DARK_LAYOUT, height: 480,
+        margin: {l: 60, r: 60, t: 30, b: 200},
+        xaxis: {...DARK_LAYOUT.xaxis, tickangle: -45, automargin: false},
         yaxis: {...DARK_LAYOUT.yaxis, title: 'Tickets'},
         yaxis2: {overlaying: 'y', side: 'right', title: 'Avg Engineers', gridcolor: 'rgba(255,255,255,0.03)', zeroline: false},
     }, {responsive: true});
