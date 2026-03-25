@@ -129,14 +129,67 @@ body {
     padding: 24px; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 28px;
 }
 .empty-msg { color: #636e72; font-style: italic; padding: 20px; text-align: center; }
+
+/* Info tooltips */
+.info-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(9,132,227,0.2); border: 1px solid rgba(9,132,227,0.4);
+    color: #74b9ff; font-size: 12px; font-weight: 700; font-style: italic; font-family: Georgia, serif;
+    cursor: pointer; position: relative; flex-shrink: 0; user-select: none;
+    transition: background 0.2s, border-color 0.2s;
+}
+.info-btn:hover { background: rgba(9,132,227,0.4); border-color: #0984e3; }
+.info-popup {
+    display: none; position: absolute; top: 28px; left: 0; z-index: 200;
+    background: linear-gradient(145deg, #1e2a3a, #0f1923);
+    border: 1px solid rgba(9,132,227,0.5); border-radius: 10px;
+    padding: 16px 18px; min-width: 340px; max-width: 460px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5); line-height: 1.6;
+    font-size: 12.5px; font-weight: 400; font-style: normal; color: #dfe6e9;
+    pointer-events: auto;
+}
+.info-popup.show { display: block; }
+.info-popup.right { left: auto; right: 0; }
+.info-popup h4 { color: #74b9ff; font-size: 13px; margin: 0 0 8px 0; font-weight: 700; }
+.info-popup p { margin: 0 0 8px 0; color: #b2bec3; }
+.info-popup ul { margin: 4px 0 8px 16px; padding: 0; color: #b2bec3; }
+.info-popup li { margin-bottom: 4px; }
+.info-popup .info-label { color: #fdcb6e; font-weight: 600; }
+.info-popup .info-note { color: #636e72; font-size: 11px; font-style: italic; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px; margin-top: 8px; }
+.info-header-btn { position: relative; display: inline-flex; }
 </style>
 </head>
 <body>
 
 <div class="dashboard-header">
-    <div>
-        <h1>IT Engineering Intelligence Dashboard</h1>
-        <div class="header-subtitle">ServiceNow Activity Analytics &mdash; Generated 2026-03-25 12:18</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+        <div>
+            <h1>IT Engineering Intelligence Dashboard</h1>
+            <div class="header-subtitle">ServiceNow Activity Analytics &mdash; Generated 2026-03-25 13:02</div>
+        </div>
+        <span class="info-btn info-header-btn" onclick="toggleInfo(this)">i
+            <div class="info-popup right" style="top:32px;min-width:420px;">
+                <h4>About This Dashboard</h4>
+                <p>This dashboard provides a comprehensive view of IT engineering team performance based on <span class="info-label">ServiceNow incident data</span> and <span class="info-label">work note activity</span>.</p>
+                <p><span class="info-label">How to use:</span></p>
+                <ul>
+                    <li>Use the <strong>date filter</strong> (From / To) to focus on a specific time period, then click <strong>Apply Filter</strong>. All charts update instantly.</li>
+                    <li>Click the <strong>(i)</strong> button on any chart section to learn what that chart shows and how to read it.</li>
+                    <li>Charts with <strong>engineer selectors</strong> let you filter which engineers are displayed.</li>
+                    <li>Hover over any chart element for detailed values.</li>
+                </ul>
+                <p><span class="info-label">How hours are calculated:</span></p>
+                <p>Estimated hours = <strong>number of work notes x 20 minutes</strong>. Each time an engineer writes a work note or comment on a ticket, we estimate ~20 minutes of effort. This is an approximation, not time tracking.</p>
+                <p><span class="info-label">Data Filters Applied:</span></p>
+                <ul>
+                    <li><strong>Cancelled tickets</strong> (state=8) are excluded</li>
+                    <li><strong>Bot-created tickets</strong> (Zabbix Monitoring, Snow Sevone API) are excluded</li>
+                    <li><strong>Bot work notes</strong> (zbxincident) are excluded from activity counts</li>
+                </ul>
+                <p class="info-note">Data source: talapparel.service-now.com &mdash; Incidents + Work Notes (sys_journal_field)</p>
+            </div>
+        </span>
     </div>
     <div class="date-controls">
         <label>From</label>
@@ -154,30 +207,126 @@ body {
     <!-- Row 1: Trend + Backlog -->
     <div class="grid-2">
         <div class="section">
-            <div class="section-title">Monthly Performance Trend <span class="section-badge">VOLUME + MTTR</span></div>
+            <div class="section-title">Monthly Performance Trend <span class="section-badge">VOLUME + MTTR</span>
+                <span class="info-btn" onclick="toggleInfo(this)">i
+                    <div class="info-popup">
+                        <h4>Monthly Performance Trend</h4>
+                        <p>Shows how incident volume and resolution speed change over time.</p>
+                        <ul>
+                            <li><span class="info-label">Blue bars (left axis):</span> Number of new incidents created each month</li>
+                            <li><span class="info-label">Red line (right axis):</span> Median MTTR (Mean Time To Resolve) in hours &mdash; the midpoint resolution time for resolved tickets that month</li>
+                            <li><span class="info-label">Green dotted line (right axis):</span> Median first response time in hours &mdash; how quickly an engineer writes the first work note after ticket creation</li>
+                        </ul>
+                        <p><strong>How to read:</strong> Ideally, bars stay stable or decrease while lines trend downward, meaning the team handles the same (or more) volume faster.</p>
+                        <p class="info-note">MTTR = resolved_at minus created_on. Response = first work note minus created_on. Median is used instead of average to avoid distortion from outliers.</p>
+                    </div>
+                </span>
+            </div>
             <div id="chartTrend"></div>
         </div>
         <div class="section">
-            <div class="section-title">Backlog Trend <span class="section-badge">NEW vs RESOLVED</span></div>
+            <div class="section-title">Ticket Trend <span class="section-badge">NEW vs RESOLVED</span>
+                <span class="info-btn" onclick="toggleInfo(this)">i
+                    <div class="info-popup">
+                        <h4>Ticket Trend (New vs Resolved)</h4>
+                        <p>Tracks whether the team is keeping up with incoming work or falling behind.</p>
+                        <ul>
+                            <li><span class="info-label">Red bars:</span> New incidents created that month</li>
+                            <li><span class="info-label">Green bars:</span> Incidents resolved that month</li>
+                            <li><span class="info-label">Yellow line:</span> Running backlog &mdash; cumulative difference between new and resolved. If green > red, the line drops (backlog shrinking). If red > green, the line rises (backlog growing).</li>
+                        </ul>
+                        <p><strong>How to read:</strong> Green bars should consistently match or exceed red bars. A rising yellow line is a warning sign that the team needs more capacity or prioritization.</p>
+                    </div>
+                </span>
+            </div>
             <div id="chartBacklog"></div>
         </div>
     </div>
 
-    <!-- Row 2: App Distribution + Workload -->
+    <!-- Row 2: App Distribution (full width) -->
+    <div class="section">
+        <div class="section-title">Incident Distribution by Application <span class="section-badge">TREEMAP</span>
+            <span class="info-btn" onclick="toggleInfo(this)">i
+                <div class="info-popup">
+                    <h4>Incident Distribution by Application</h4>
+                    <p>Shows which applications/systems generate the most incidents (top 20).</p>
+                    <ul>
+                        <li><span class="info-label">Box size:</span> Proportional to the number of incidents for that application</li>
+                        <li><span class="info-label">Label:</span> Application name, count, and percentage of total</li>
+                    </ul>
+                    <p><strong>How to read:</strong> The largest boxes are your highest-volume applications. Use this to identify systems that may need investment, dedicated support, or root-cause analysis.</p>
+                    <p class="info-note">Application = ServiceNow incident subcategory field. Tickets without a subcategory show as "(Unclassified)".</p>
+                </div>
+            </span>
+        </div>
+        <div id="chartAppDist"></div>
+    </div>
+
+    <!-- Row 2b: Ticket Volume per Engineer -->
     <div class="grid-2">
         <div class="section">
-            <div class="section-title">Incident Distribution by Application <span class="section-badge">TREEMAP</span></div>
-            <div id="chartAppDist"></div>
+            <div class="section-title">Engineering Workload &mdash; Tickets <span class="section-badge">UNIQUE TICKETS / MONTH</span>
+                <span class="info-btn" onclick="toggleInfo(this)">i
+                    <div class="info-popup">
+                        <h4>Engineering Workload &mdash; Tickets</h4>
+                        <p>Shows how many <strong>unique tickets</strong> each engineer worked on per month.</p>
+                        <ul>
+                            <li><span class="info-label">Each color:</span> Represents one engineer (top 12 by volume, or filtered selection)</li>
+                            <li><span class="info-label">Bar height:</span> Number of distinct tickets that engineer wrote at least one work note on</li>
+                            <li><span class="info-label">Stacked total:</span> Combined ticket touches across selected engineers</li>
+                        </ul>
+                        <p><strong>How to read:</strong> Compare relative contributions month-over-month. A sudden drop for one engineer may indicate leave, reassignment, or workload shift. Use the engineer selector to focus on specific people.</p>
+                        <p class="info-note">A ticket is counted once per engineer per month, even if the engineer wrote multiple notes on it.</p>
+                    </div>
+                </span>
+            </div>
+            <div class="eng-selector">
+                <label>Engineers:</label>
+                <select id="selWorkloadTicketEngs" multiple onchange="renderWorkloadTickets()" style="height:110px;max-width:400px;"></select>
+            </div>
+            <div id="chartWorkloadTickets"></div>
         </div>
         <div class="section">
-            <div class="section-title">Engineering Workload <span class="section-badge">ESTIMATED HOURS / MONTH</span></div>
+            <div class="section-title">Engineering Workload &mdash; Hours <span class="section-badge">ESTIMATED HOURS / MONTH</span>
+                <span class="info-btn" onclick="toggleInfo(this)">i
+                    <div class="info-popup">
+                        <h4>Engineering Workload &mdash; Hours</h4>
+                        <p>Estimated time each engineer spent on incidents per month.</p>
+                        <ul>
+                            <li><span class="info-label">Each color:</span> Represents one engineer</li>
+                            <li><span class="info-label">Bar height:</span> Estimated hours = work notes count &times; 20 minutes</li>
+                        </ul>
+                        <p><span class="info-label">How hours are calculated:</span> Every time an engineer writes a work note or comment on a ticket, we estimate <strong>~20 minutes of effort</strong>. This is a practical approximation since ServiceNow does not track actual time spent. An engineer with 90 work notes in a month = 90 &times; 20 min = 30 estimated hours.</p>
+                        <p><strong>How to read:</strong> Use this to gauge relative workload distribution. If one engineer's bar is consistently tall, they may be overloaded. Use the selector to compare specific engineers.</p>
+                        <p class="info-note">This is an estimate, not actual time tracking. Real effort per note varies by complexity.</p>
+                    </div>
+                </span>
+            </div>
+            <div class="eng-selector">
+                <label>Engineers:</label>
+                <select id="selWorkloadHoursEngs" multiple onchange="renderWorkload()" style="height:110px;max-width:400px;"></select>
+            </div>
             <div id="chartWorkload"></div>
         </div>
     </div>
 
     <!-- Row 3: Heatmap Tickets (full width) -->
     <div class="section">
-        <div class="section-title">Engineer vs Application &mdash; Tickets <span class="section-badge">HEATMAP</span></div>
+        <div class="section-title">Engineer vs Application &mdash; Tickets <span class="section-badge">HEATMAP</span>
+            <span class="info-btn" onclick="toggleInfo(this)">i
+                <div class="info-popup">
+                    <h4>Engineer vs Application &mdash; Tickets</h4>
+                    <p>A matrix showing how many <strong>unique tickets</strong> each engineer touched for each application.</p>
+                    <ul>
+                        <li><span class="info-label">Rows:</span> Engineers (sorted by total tickets, highest at top)</li>
+                        <li><span class="info-label">Columns:</span> Applications (sorted by total tickets, highest at left)</li>
+                        <li><span class="info-label">Cell color &amp; number:</span> Darker/higher = more tickets. The number shows the exact count.</li>
+                    </ul>
+                    <p><strong>How to read:</strong> Identify who specializes in which application. Bright cells = high involvement. Use this to understand team coverage and spot single points of failure (one person handling all tickets for an app).</p>
+                    <p class="info-note">Use the engineer selector (hold Ctrl/Cmd to multi-select) to focus on specific people. Top 20 apps shown.</p>
+                </div>
+            </span>
+        </div>
         <div class="eng-selector">
             <label>Engineers:</label>
             <select id="selTicketEngs" multiple onchange="renderHeatmap()" style="height:130px;max-width:400px;"></select>
@@ -187,7 +336,20 @@ body {
 
     <!-- Row 4: Heatmap Hours (full width) -->
     <div class="section">
-        <div class="section-title">Engineer vs Application &mdash; Hours <span class="section-badge">HEATMAP</span></div>
+        <div class="section-title">Engineer vs Application &mdash; Hours <span class="section-badge">HEATMAP</span>
+            <span class="info-btn" onclick="toggleInfo(this)">i
+                <div class="info-popup">
+                    <h4>Engineer vs Application &mdash; Hours</h4>
+                    <p>Same matrix as above, but showing <strong>estimated hours</strong> instead of ticket count.</p>
+                    <ul>
+                        <li><span class="info-label">Cell value:</span> Estimated hours = work notes on that app &times; 20 min / 60</li>
+                        <li><span class="info-label">Color intensity:</span> Purple to yellow gradient &mdash; brighter = more hours invested</li>
+                    </ul>
+                    <p><strong>How to read:</strong> An engineer may touch many tickets briefly (high ticket count, low hours) or few tickets deeply (low count, high hours). Compare this with the Tickets heatmap to understand depth vs breadth of involvement.</p>
+                    <p class="info-note">Hours = work notes &times; 20 minutes. This is an approximation, not actual time tracking.</p>
+                </div>
+            </span>
+        </div>
         <div class="eng-selector">
             <label>Engineers:</label>
             <select id="selHoursEngs" multiple onchange="renderHoursHeatmap()" style="height:130px;max-width:400px;"></select>
@@ -198,7 +360,21 @@ body {
     <!-- Row 5: Activity Pattern + Productivity -->
     <div class="grid-2">
         <div class="section">
-            <div class="section-title">Activity Patterns <span class="section-badge">WHEN ENGINEERS WORK</span></div>
+            <div class="section-title">Activity Patterns <span class="section-badge">WHEN ENGINEERS WORK</span>
+                <span class="info-btn" onclick="toggleInfo(this)">i
+                    <div class="info-popup">
+                        <h4>Activity Patterns</h4>
+                        <p>Shows <strong>when</strong> engineers are active &mdash; by day of week and hour of day (Bangkok time, UTC+7).</p>
+                        <ul>
+                            <li><span class="info-label">Rows:</span> Days of the week (Monday at top, Sunday at bottom)</li>
+                            <li><span class="info-label">Columns:</span> Hours of the day (00:00 to 23:00)</li>
+                            <li><span class="info-label">Cell color:</span> Brighter = more work notes written at that time</li>
+                        </ul>
+                        <p><strong>How to read:</strong> Dark cells = low activity. Bright green/blue = peak activity. Use the dropdown to view patterns for a specific engineer or the whole team. Look for after-hours work, weekend activity, or coverage gaps.</p>
+                        <p class="info-note">Times are converted from ServiceNow UTC timestamps to Bangkok timezone (UTC+7).</p>
+                    </div>
+                </span>
+            </div>
             <div class="eng-selector">
                 <label>Engineer:</label>
                 <select id="selActivityEng" onchange="renderActivity()">
@@ -208,20 +384,67 @@ body {
             <div id="chartActivity"></div>
         </div>
         <div class="section">
-            <div class="section-title">Engineer Productivity Map <span class="section-badge">BUBBLE</span></div>
+            <div class="section-title">Engineer Productivity Map <span class="section-badge">BUBBLE</span>
+                <span class="info-btn" onclick="toggleInfo(this)">i
+                    <div class="info-popup right">
+                        <h4>Engineer Productivity Map</h4>
+                        <p>Plots each engineer as a bubble to visualize their overall workload profile (top 15).</p>
+                        <ul>
+                            <li><span class="info-label">X-axis (horizontal):</span> Total unique tickets touched</li>
+                            <li><span class="info-label">Y-axis (vertical):</span> Estimated total hours (notes &times; 20 min)</li>
+                            <li><span class="info-label">Bubble size:</span> Number of unique applications the engineer worked on &mdash; bigger = broader coverage</li>
+                            <li><span class="info-label">Bubble color:</span> Blue to red gradient based on ticket count &mdash; redder = more tickets</li>
+                        </ul>
+                        <p><strong>How to read:</strong> Top-right = high volume + high effort (heaviest contributors). Large bubbles = generalists working across many apps. Small bubbles in top-right = specialists handling many tickets in few apps. Bottom-left = lower activity.</p>
+                    </div>
+                </span>
+            </div>
             <div id="chartBubble"></div>
         </div>
     </div>
 
     <!-- Row 6: Reassignment -->
     <div class="section">
-        <div class="section-title">Multi-Engineer Tickets by Application <span class="section-badge">COLLABORATION / REASSIGNMENT</span></div>
+        <div class="section-title">Multi-Engineer Tickets by Application <span class="section-badge">COLLABORATION / REASSIGNMENT</span>
+            <span class="info-btn" onclick="toggleInfo(this)">i
+                <div class="info-popup">
+                    <h4>Multi-Engineer Tickets</h4>
+                    <p>Identifies tickets that were <strong>worked on by 2 or more different engineers</strong>, grouped by application.</p>
+                    <ul>
+                        <li><span class="info-label">Red bars (left axis):</span> Number of multi-engineer tickets for that application</li>
+                        <li><span class="info-label">Yellow line (right axis):</span> Average number of engineers per ticket for that application</li>
+                    </ul>
+                    <p><strong>How to read:</strong> High bars may indicate:</p>
+                    <ul>
+                        <li><strong>Healthy collaboration</strong> &mdash; complex issues needing multiple specialists</li>
+                        <li><strong>Reassignment issues</strong> &mdash; tickets being bounced between people due to unclear ownership or routing</li>
+                    </ul>
+                    <p>If the yellow line is high (3+), that app's tickets frequently require hand-offs. Consider dedicated ownership or better triage.</p>
+                    <p class="info-note">Based on distinct sys_created_by values in work notes per ticket. Only counts human engineers (bots excluded).</p>
+                </div>
+            </span>
+        </div>
         <div id="chartReassign"></div>
     </div>
 
     <!-- Engineer Scorecard -->
     <div class="section">
-        <div class="section-title">Engineer Scorecard <span class="section-badge">TOP APPS PER ENGINEER</span></div>
+        <div class="section-title">Engineer Scorecard <span class="section-badge">TOP APPS PER ENGINEER</span>
+            <span class="info-btn" onclick="toggleInfo(this)">i
+                <div class="info-popup">
+                    <h4>Engineer Scorecard</h4>
+                    <p>A detailed table summarizing each engineer's activity across the selected period.</p>
+                    <ul>
+                        <li><span class="info-label">Tickets:</span> Unique incidents the engineer wrote at least one work note on</li>
+                        <li><span class="info-label">Notes:</span> Total work notes and comments written</li>
+                        <li><span class="info-label">Est. Hours:</span> Notes &times; 20 minutes (effort estimate)</li>
+                        <li><span class="info-label">Apps:</span> Number of unique applications (subcategories) worked on</li>
+                        <li><span class="info-label">Top Applications:</span> The engineer's most-worked applications, showing ticket count and hours for each</li>
+                    </ul>
+                    <p><strong>How to read:</strong> Use Top 5 / Top 10 tabs to control how many apps are shown per engineer. Engineers are sorted by total tickets (highest first). This table is ideal for 1-on-1 reviews or workload discussions.</p>
+                </div>
+            </span>
+        </div>
         <div class="tab-row">
             <button class="tab-btn active" onclick="setScoreTab(5, this)">Top 5</button>
             <button class="tab-btn" onclick="setScoreTab(10, this)">Top 10</button>
@@ -251,6 +474,21 @@ const DARK_LAYOUT = {
 };
 
 let dateFrom, dateTo, currentTopN = 5;
+
+// ===== INFO TOOLTIPS =====
+function toggleInfo(btn) {
+    let popup = btn.querySelector('.info-popup');
+    let wasOpen = popup.classList.contains('show');
+    // Close all popups first
+    document.querySelectorAll('.info-popup.show').forEach(p => p.classList.remove('show'));
+    if (!wasOpen) popup.classList.add('show');
+}
+// Close popups on outside click
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.info-btn')) {
+        document.querySelectorAll('.info-popup.show').forEach(p => p.classList.remove('show'));
+    }
+});
 
 // ===== UTILITIES =====
 function getName(email) {
@@ -443,7 +681,47 @@ function renderAppDist() {
     }], {...DARK_LAYOUT, height: 420}, {responsive: true});
 }
 
-// ===== WORKLOAD =====
+// ===== WORKLOAD (TICKETS) =====
+function renderWorkloadTickets() {
+    let jrnl = filteredJournal();
+    if (!jrnl.length) { Plotly.purge('chartWorkloadTickets'); return; }
+
+    // Engineer → month → unique tickets
+    let eng = {};
+    jrnl.forEach(r => {
+        let e = r.sys_created_by, m = getYM(r.sys_created_on);
+        if (!eng[e]) eng[e] = {};
+        if (!eng[e][m]) eng[e][m] = new Set();
+        eng[e][m].add(r.element_id);
+    });
+
+    // All engineers sorted by total
+    let totals = Object.entries(eng).map(([e, months]) => {
+        let total = 0;
+        Object.values(months).forEach(s => total += s.size);
+        return [e, total];
+    });
+    totals.sort((a, b) => b[1] - a[1]);
+
+    // Use selected engineers or default to top 12
+    let sel = Array.from(document.getElementById('selWorkloadTicketEngs').selectedOptions).map(o => o.value);
+    let topEngs = sel.length ? sel : totals.slice(0, 12).map(t => t[0]);
+    let months = [...new Set(jrnl.map(r => getYM(r.sys_created_on)))].sort();
+
+    let traces = topEngs.map((e, i) => ({
+        x: months.map(ymLabel),
+        y: months.map(m => eng[e] && eng[e][m] ? eng[e][m].size : 0),
+        type: 'bar', name: getName(e),
+        marker: {color: PALETTE[i % PALETTE.length]},
+    }));
+    Plotly.newPlot('chartWorkloadTickets', traces, {
+        ...DARK_LAYOUT, height: 420, barmode: 'stack',
+        xaxis: {...DARK_LAYOUT.xaxis, tickangle: -35},
+        yaxis: {...DARK_LAYOUT.yaxis, title: 'Unique Tickets'},
+    }, {responsive: true});
+}
+
+// ===== WORKLOAD (HOURS) =====
 function renderWorkload() {
     let jrnl = filteredJournal();
     if (!jrnl.length) { Plotly.purge('chartWorkload'); return; }
@@ -456,21 +734,25 @@ function renderWorkload() {
         eng[e][m] = (eng[e][m] || 0) + 1;
     });
 
-    // Top 12 by total notes
+    // All engineers sorted by total notes
     let totals = Object.entries(eng).map(([e, months]) => [e, Object.values(months).reduce((a, b) => a + b, 0)]);
     totals.sort((a, b) => b[1] - a[1]);
-    let topEngs = totals.slice(0, 12).map(t => t[0]);
+
+    // Use selected engineers or default to top 12
+    let sel = Array.from(document.getElementById('selWorkloadHoursEngs').selectedOptions).map(o => o.value);
+    let topEngs = sel.length ? sel : totals.slice(0, 12).map(t => t[0]);
     let months = [...new Set(jrnl.map(r => getYM(r.sys_created_on)))].sort();
 
     let traces = topEngs.map((e, i) => ({
         x: months.map(ymLabel),
-        y: months.map(m => ((eng[e][m] || 0) * 20 / 60).toFixed(1)),
+        y: months.map(m => ((eng[e]?.[m] || 0) * 20 / 60).toFixed(1)),
         type: 'bar', name: getName(e),
         marker: {color: PALETTE[i % PALETTE.length]},
     }));
     Plotly.newPlot('chartWorkload', traces, {
         ...DARK_LAYOUT, height: 420, barmode: 'stack',
         xaxis: {...DARK_LAYOUT.xaxis, tickangle: -35},
+        yaxis: {...DARK_LAYOUT.yaxis, title: 'Estimated Hours'},
     }, {responsive: true});
 }
 
@@ -634,6 +916,7 @@ function renderBubble() {
 
     Plotly.newPlot('chartBubble', [{
         x: data.map(r => r.tickets), y: data.map(r => r.hours),
+        customdata: data.map(r => r.apps),
         mode: 'markers+text', type: 'scatter',
         text: data.map(r => r.name),
         textposition: 'top center', textfont: {size: 10, color: '#dfe6e9'},
@@ -644,7 +927,7 @@ function renderBubble() {
             showscale: true, colorbar: {title: 'Tickets'},
             opacity: 0.8, line: {width: 1, color: '#dfe6e9'},
         },
-        hovertemplate: '<b>%{text}</b><br>Tickets: %{x}<br>Est Hours: %{y:.0f}<br>Apps: %{marker.size}<extra></extra>',
+        hovertemplate: '<b>%{text}</b><br>Tickets: %{x}<br>Est Hours: %{y:.0f}<br>Unique Apps: %{customdata}<extra></extra>',
     }], {...DARK_LAYOUT, height: 420,
         xaxis: {...DARK_LAYOUT.xaxis, title: 'Tickets Touched'},
         yaxis: {...DARK_LAYOUT.yaxis, title: 'Estimated Hours'},
@@ -740,6 +1023,39 @@ function renderScorecard() {
     document.getElementById('scorecardTable').innerHTML = html;
 }
 
+// ===== POPULATE WORKLOAD SELECTORS =====
+function populateWorkloadSelectors() {
+    let jrnl = filteredJournal();
+    // Build totals for both metrics
+    let ticketEng = {}, hoursEng = {};
+    jrnl.forEach(r => {
+        let e = r.sys_created_by, m = getYM(r.sys_created_on);
+        if (!ticketEng[e]) ticketEng[e] = {};
+        if (!ticketEng[e][m]) ticketEng[e][m] = new Set();
+        ticketEng[e][m].add(r.element_id);
+        hoursEng[e] = (hoursEng[e] || 0) + 1;
+    });
+
+    // Ticket selector
+    let ticketTotals = Object.entries(ticketEng).map(([e, months]) => {
+        let t = 0; Object.values(months).forEach(s => t += s.size); return {e, total: t};
+    }).sort((a, b) => b.total - a.total);
+
+    let selT = document.getElementById('selWorkloadTicketEngs');
+    selT.innerHTML = ticketTotals.map((r, i) =>
+        '<option value="' + r.e + '"' + (i < 12 ? ' selected' : '') + '>' + getName(r.e) + ' (' + r.total + ' tickets)</option>'
+    ).join('');
+
+    // Hours selector
+    let hoursTotals = Object.entries(hoursEng).map(([e, n]) => ({e, total: n, hours: +(n * 20 / 60).toFixed(1)}))
+        .sort((a, b) => b.total - a.total);
+
+    let selH = document.getElementById('selWorkloadHoursEngs');
+    selH.innerHTML = hoursTotals.map((r, i) =>
+        '<option value="' + r.e + '"' + (i < 12 ? ' selected' : '') + '>' + getName(r.e) + ' (' + r.hours + 'h)</option>'
+    ).join('');
+}
+
 // ===== RENDER ALL =====
 function renderAll() {
     cachedHeatmap = null; // reset cache
@@ -747,6 +1063,8 @@ function renderAll() {
     renderTrend();
     renderBacklog();
     renderAppDist();
+    populateWorkloadSelectors();
+    renderWorkloadTickets();
     renderWorkload();
     let hm = getHeatmapData();
     populateSelector('selTicketEngs', hm.tickets);
